@@ -76,7 +76,7 @@ extraction_functions = [
 
 ]
 df["filename"] = df.filepath.map(lambda x: str(x.absolute()))
-df["sound"] = df.filename.map(parselmouth.Sound)
+df["sound"] = df.filename.map(parselmouth.Sound).map(lambda sound: sound.extract_left_channel())
 
 for feature_name, extractor in zip(features_to_extract, extraction_functions):
     df[feature_name] = df.sound.map(extractor)
