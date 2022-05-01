@@ -36,6 +36,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 trainable_features = set(df.columns) - {"name","frameTime"} - set(name_to_attribute)
 label = "emotion"
+df = df.astype(float, errors="ignore")
 X = df[trainable_features]
 X
 # %%
@@ -91,29 +92,46 @@ cm_plot.set(xlabel="Predicted Label", ylabel='True Label')
 # %%
 
 speakers = pd.unique(df["speaker"])
-# %%
-classification_reports = []
+
+
+df_std = df.copy()
+speakers = pd.unique(df["speaker"])
 for speaker in speakers:
-    test_mask = df.speaker == speaker
-    df_test = df[test_mask]
-    df_train = df[~test_mask]
-
-    
-    clf = RandomForestClassifier(min_samples_leaf=5)
-    clf.fit(df_train[trainable_features], df_train[label])
-
-    pred = clf.predict(df_test[trainable_features])
-    clf_rprt = classification_report(df_test[label], pred, output_dict=True)
-    clf_df = pd.DataFrame(clf_rprt)
-    classification_reports.append(clf_df)
-    display(clf_df)
-
-    cm = confusion_matrix(df_test[label], pred, labels=clf.classes_)
-    df_cm = pd.DataFrame(data=cm, index=clf.classes_, columns=clf.classes_)
-    cm_plot = sns.heatmap(df_cm, annot=True, annot_kws={"size": 16}, ) # font size
-    cm_plot.set(xlabel="Predicted Label", ylabel='True Label')
-    plt.show()
-
+    df_usr = df[df.speaker == speaker]
+    df_neutral_stats = df_usr[df_usr.emotion == "neutral"][trainable_features].astype(float).describe()
+    # df_neutral_stats = df_usr.describe()
+    display(df_neutral_stats)
+    df_subtracted_mean = df_usr[trainable_features].astype(float) - df_neutral_stats.loc["mean"]
+    df_normalized = (df_subtracted_mean /
+                     df_neutral_stats.loc["std"]).dropna(axis="columns")
+    df_std.loc[df.speaker == speaker, df_normalized.columns] = df_normalized
 
 # %%
+for df_ in [df_std]:
+    classification_reports = []
+    for speaker in speakers:
+        test_mask = df.speaker == speaker
+        df_test = df_[test_mask]
+        df_train = df_[~test_mask]
 
+        clf = RandomForestClassifier(min_samples_leaf=5)
+        clf.fit(df_train[trainable_features], df_train[label])
+
+        pred = clf.predict(df_test[trainable_features])
+        clf_rprt = classification_report(df_test[label], pred, output_dict=True)
+        clf_df = pd.DataFrame(clf_rprt)
+        classification_reports.append(clf_df)
+        display(clf_df)
+
+        cm = confusion_matrix(df_test[label], pred, labels=clf.classes_)
+        df_cm = pd.DataFrame(data=cm, index=clf.classes_, columns=clf.classes_)
+        cm_plot = sns.heatmap(df_cm, annot=True, annot_kws={"size": 16}, ) # font size
+        cm_plot.set(xlabel="Predicted Label", ylabel='True Label')
+        plt.show()
+
+
+    average_clf_report = sum(classification_reports) / len(classification_reports)
+    display(average_clf_report)
+    # %%
+
+    # %%
