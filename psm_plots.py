@@ -113,11 +113,12 @@ for df_ in [df, df_std]:
     for feature in features_to_extract:
         sns.barplot(
             y=feature,
-            x="speaker",
+            x="emotion",
             data=df_,
             capsize=.2,
             ci="sd",
             estimator=np.mean
         )
+        plt.xticks(rotation=45)
         plt.show()
 # %%
