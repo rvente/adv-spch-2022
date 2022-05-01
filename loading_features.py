@@ -37,6 +37,7 @@ from sklearn.ensemble import RandomForestClassifier
 trainable_features = set(df.columns) - {"name","frameTime"} - set(name_to_attribute)
 label = "emotion"
 df = df.astype(float, errors="ignore")
+df["speaker_cat"] = df["speaker"].astype('category').cat.codes
 X = df[trainable_features]
 X
 # %%
@@ -109,29 +110,44 @@ for speaker in speakers:
 # %%
 for df_ in [df_std]:
     classification_reports = []
+    confusion_matrices = []
     for speaker in speakers:
         test_mask = df.speaker == speaker
         df_test = df_[test_mask]
         df_train = df_[~test_mask]
 
         clf = RandomForestClassifier(min_samples_leaf=5)
-        clf.fit(df_train[trainable_features], df_train[label])
-
-        pred = clf.predict(df_test[trainable_features])
+        selected_features = trainable_features | {"speaker_cat"}
+        clf.fit(df_train[selected_features], df_train[label])
+        # assert that absolutely no training instances are in the test set
+        df_test_speakers = df_test.speaker_cat.describe().T
+        assert(
+            df_test_speakers.loc["mean"]
+            == df_test_speakers.loc["max"]
+            == df_test_speakers.loc["min"])
+        pred = clf.predict(df_test[selected_features])
         clf_rprt = classification_report(df_test[label], pred, output_dict=True)
         clf_df = pd.DataFrame(clf_rprt)
         classification_reports.append(clf_df)
-        display(clf_df)
+        # display(clf_df)
 
         cm = confusion_matrix(df_test[label], pred, labels=clf.classes_)
         df_cm = pd.DataFrame(data=cm, index=clf.classes_, columns=clf.classes_)
-        cm_plot = sns.heatmap(df_cm, annot=True, annot_kws={"size": 16}, ) # font size
-        cm_plot.set(xlabel="Predicted Label", ylabel='True Label')
-        plt.show()
+        confusion_matrices.append(df_cm)
 
 
     average_clf_report = sum(classification_reports) / len(classification_reports)
     display(average_clf_report)
+
+
+    average_confusion_matrix = sum(confusion_matrices) / len(confusion_matrices)
+    cm_plot = sns.heatmap(df_cm, annot=True, annot_kws={"size": 16}, ) # font size
+    cm_plot.set(xlabel="Predicted Label", ylabel='True Label')
+    plt.show()
     # %%
 
     # %%
+
+# %%
+
+# %%
