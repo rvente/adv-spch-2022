@@ -109,7 +109,7 @@ df_std.describe().round(5)
 
 # %%
 # %%
-for df_ in [df, df_std]:
+for df_, name in zip([df, df_std], ["raw", "standard"]):
     for feature in features_to_extract:
         sns.barplot(
             y=feature,
@@ -119,6 +119,7 @@ for df_ in [df, df_std]:
             ci="sd",
             estimator=np.mean
         )
-        plt.xticks(rotation=45)
+        plt.xticks(rotation=60)
+        plt.savefig(f"figures/{name} {feature}.pdf", format="pdf", bbox_inches="tight")
         plt.show()
 # %%
