@@ -66,6 +66,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from IPython.display import set_matplotlib_formats, display
+import numpy as np
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.tree import DecisionTreeClassifier
 set_matplotlib_formats('svg')
 # sns.set(rc={"figure.dpi":300, 'savefig.dpi':300})
 sns.set_context('notebook')
@@ -99,9 +102,8 @@ df_std = df.copy()
 speakers = pd.unique(df["speaker"])
 for speaker in speakers:
     df_usr = df[df.speaker == speaker]
-    df_neutral_stats = df_usr[df_usr.emotion == "neutral"][trainable_features].astype(float).describe()
-    # df_neutral_stats = df_usr.describe()
-    display(df_neutral_stats)
+    # df_neutral_stats = df_usr[df_usr.emotion == "neutral"][trainable_features].astype(float).describe()
+    df_neutral_stats = df_usr[trainable_features].astype(float).describe()
     df_subtracted_mean = df_usr[trainable_features].astype(float) - df_neutral_stats.loc["mean"]
     df_normalized = (df_subtracted_mean /
                      df_neutral_stats.loc["std"]).dropna(axis="columns")
@@ -116,7 +118,9 @@ for df_ in [df_std]:
         df_test = df_[test_mask]
         df_train = df_[~test_mask]
 
-        clf = RandomForestClassifier(min_samples_leaf=5)
+        clf = RandomForestClassifier(min_samples_leaf=3, random_state=42)
+        # clf = LinearDiscriminantAnalysis()
+        # clf = DecisionTreeClassifier(min_samples_leaf=30, random_state=42)
         selected_features = trainable_features | {"speaker_cat"}
         clf.fit(df_train[selected_features], df_train[label])
         # assert that absolutely no training instances are in the test set
@@ -129,7 +133,7 @@ for df_ in [df_std]:
         clf_rprt = classification_report(df_test[label], pred, output_dict=True)
         clf_df = pd.DataFrame(clf_rprt)
         classification_reports.append(clf_df)
-        # display(clf_df)
+        display(clf_df)
 
         cm = confusion_matrix(df_test[label], pred, labels=clf.classes_)
         df_cm = pd.DataFrame(data=cm, index=clf.classes_, columns=clf.classes_)
@@ -137,11 +141,11 @@ for df_ in [df_std]:
 
 
     average_clf_report = sum(classification_reports) / len(classification_reports)
-    display(average_clf_report)
+    print(average_clf_report.T.round(4).to_markdown())
 
 
     average_confusion_matrix = sum(confusion_matrices) / len(confusion_matrices)
-    cm_plot = sns.heatmap(df_cm, annot=True, annot_kws={"size": 16}, ) # font size
+    cm_plot = sns.heatmap(average_confusion_matrix, annot=True, annot_kws={"size": 16}, ) # font size
     cm_plot.set(xlabel="Predicted Label", ylabel='True Label')
     plt.show()
     # %%

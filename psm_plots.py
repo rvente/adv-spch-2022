@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import seaborn as sns
+sns.set(font_scale=1.5, rc={'text.usetex' : True})
 from IPython.display import display
 import pandas as pd
 from pathlib import Path
@@ -8,9 +9,6 @@ import parselmouth
 import matplotlib.pyplot as plt
 
 FEATURE_FILES = list(Path("./opensmile_features").iterdir())
-
-# %%
-# TODO: set pitch mode to autocorrelation
 
 
 def min_pitch(sound):
@@ -55,7 +53,6 @@ def sd_intensity(sound):
 
 
 FEATURE_FILES = list(Path("./hw3_speech_files").iterdir())
-df = pd.DataFrame(columns=["filepath"], data=FEATURE_FILES)
 
 features_to_extract = [
     "Min Pitch",
@@ -75,6 +72,7 @@ extraction_functions = [
     mean_intensity,
 
 ]
+df = pd.DataFrame(columns=["filepath"], data=FEATURE_FILES)
 df["filename"] = df.filepath.map(lambda x: str(x.absolute()))
 df["sound"] = df.filename.map(parselmouth.Sound).map(lambda sound: sound.extract_left_channel())
 
@@ -96,8 +94,8 @@ df_std = df.copy()
 speakers = pd.unique(df["speaker"])
 for speaker in speakers:
     df_usr = df[df.speaker == speaker]
-    df_neutral_stats = df_usr[df_usr.emotion == "neutral"].describe()
-    # df_neutral_stats = df_usr.describe()
+    # df_neutral_stats = df_usr[df_usr.emotion == "neutral"].describe()
+    df_neutral_stats = df_usr.describe()
     df_subtracted_mean = df_usr - df_neutral_stats.loc["mean"]
     df_normalized = (df_subtracted_mean /
                      df_neutral_stats.loc["std"]).dropna(axis="columns")
@@ -119,7 +117,7 @@ for df_, name in zip([df, df_std], ["raw", "standard"]):
             ci="sd",
             estimator=np.mean
         )
-        plt.xticks(rotation=60)
+        plt.xticks(rotation=90)
         plt.savefig(f"figures/{name} {feature}.pdf", format="pdf", bbox_inches="tight")
         plt.show()
 # %%
